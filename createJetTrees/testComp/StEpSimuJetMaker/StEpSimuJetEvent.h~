@@ -1,0 +1,115 @@
+// EP Simu Jet Treese
+
+#ifndef StEpSimuJetEvent_def
+#define StEpSimuJetEvent_def
+
+class TLorentzVector;
+class TClonesArray;
+class StEpSimuJetDef;
+class StEpSimuJet;
+class StEpSimuJetParticle;
+//class StForwardTower;
+class StEpSimuParticle;
+class StEpSimuSubJet;
+
+#include "TObject.h"
+#include "TVector3.h"
+#include "TDatime.h"
+
+
+class StEpSimuJetEvent : public TObject { // declare the class{
+
+ public:
+
+  StEpSimuJetEvent();
+
+  void Clear();
+
+  // Declare Setters
+  void setProcessID(int id);
+  void setTrueQ2(Double_t q2);
+  void setTrueNu(Double_t nu);
+  void setTrueY(Double_t y);
+  void setTrueX(Double_t x);
+  void setTrueW2(Double_t w);
+  void setBoost(Double_t px, Double_t py, Double_t pz, Double_t e);
+  void setBoostAngles(Double_t phi, Double_t theta);
+  void setGoodBoost(bool isGoodBoost);
+  
+  
+  // Declare and Implement Getters
+  int processID()    const { return mProcessID; }
+  Double_t trueQ2()  const { return mTrueQ2; }
+  Double_t trueNu()  const { return mTrueNu; }
+  Double_t trueY()   const { return mTrueY; }
+  Double_t trueX()   const { return mTrueX; }
+  Double_t trueW2()  const { return mTrueW2; }
+
+  Double_t boostPx()    const { return mBoostPx; }
+  Double_t boostPy()    const { return mBoostPy; }
+  Double_t boostPz()    const { return mBoostPz; }
+  Double_t boostE()     const { return mBoostE; }
+  Double_t boostPhi()   const { return mBoostPhi; }
+  Double_t boostTheta() const { return mBoostTheta; }
+  bool goodBoost()      const { return mGoodBoost; }
+
+  // Get Number of Dijets
+  //int numberOfDijets() const;
+  //int numberOfJets() const;
+
+  // Get Number of Pythia Objects
+  //int numberOfPythia() const;
+  int numberOfTotalParticles() const;
+
+  int numberOfJetDefs() const;
+
+  // Get Dijet
+  //StForwardDijet* dijet(int i) const;
+  //StEpSimuJet* jet(int i) const;
+
+  // Get Jet Finder Configuration
+  StEpSimuJetDef* jetDef(int i) const;
+
+  // Get PYTHIA Info
+  //StForwardPYTHIA* pythia(int i) const;
+  StEpSimuParticle* particle(int i) const;
+
+  // Declare New Objects
+  StEpSimuJetDef* newJetDef();
+  StEpSimuJet* newJet(Double_t pt, Double_t eta, Double_t phi, Double_t energy);
+  StEpSimuParticle* newParticle();
+  //StForwardDijet* newDijet();
+  //StForwardJet* newJet(const TLorentzVector& fourMomentum);
+  StEpSimuJetParticle* newJetParticle(Double_t pt, Double_t eta, Double_t phi, Double_t energy);
+  StEpSimuSubJet* newSubJet(Double_t pt, Double_t eta, Double_t phi, Double_t energy);
+  //StForwardTower* newTower();
+  //StForwardPYTHIA* newPythia();
+
+  
+
+ private:
+
+  int mProcessID;
+  Double_t mTrueQ2;
+  Double_t mTrueNu;
+  Double_t mTrueY;
+  Double_t mTrueX;
+  Double_t mTrueW2;
+
+  Double_t mBoostPx, mBoostPy, mBoostPz, mBoostE;
+  Double_t mBoostPhi, mBoostTheta;
+  bool mGoodBoost;
+
+  //TClonesArray* mDijets;
+  TClonesArray* mJetDefs;
+  TClonesArray* mJets;
+  TClonesArray* mJetParticles;
+  //TClonesArray* mTowers;
+  TClonesArray* mParticles;
+  TClonesArray* mSubJets;
+
+  ClassDef(StEpSimuJetEvent,2);
+};
+
+#endif
+
