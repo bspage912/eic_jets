@@ -1,6 +1,8 @@
 // Analyze the My Simu Jet Trees
 
 #include "fastjet/ClusterSequence.hh"
+#include "fastjet/contrib/Recluster.hh"
+#include "fastjet/contrib/SoftDrop.hh"
 
 #include <iostream>
 #include <fstream>
@@ -161,6 +163,13 @@ int main(int argc, char* argv[])
   if(q2Set == 10) cout << "Q2 Range: 10^0 <= Q2 < 10^1" << endl;
   if(q2Set == 11) cout << "Q2 Range: 10^1 <= Q2 < 10^2" << endl;
 
+  // Groming parameters
+  double beta = 0.0;
+  double zcut = 0.1;
+  // Paper variations: 
+  // fix zcut = 0.1 and vary beta = 0, 1, 2
+  // fix beta = 1   and vary zcut = 0.05, 0.1, 0.2, 0.3
+  // Not that's for LHC kinematics
 
   // Create Histograms
   char algoNames[6][100];
@@ -194,6 +203,11 @@ int main(int argc, char* argv[])
   TH1D *wtaEtaHist[6][2][5];
   TH1D *wtaRapHist[6][2][5];
 
+  // Groomed Jet Kinematics
+  TH1D *grmPtHist[6][2][5];
+  TH1D *grmEtaHist[6][2][5];
+  TH1D *grmRapHist[6][2][5];
+
   // Comparisons
   TH1D *jetWTADeltaRHist[6][2][5];
   TH1D *jetWTAPDeltaRHist[6][2][5];
@@ -208,6 +222,12 @@ int main(int argc, char* argv[])
   TH2D *wtaWTAPDeltaRVsPtHist[6][2][5];
   TH2D *wtaWTAPDeltaRVsEtaHist[6][2][5];
 
+  // Groomed axes comparisons
+  TH1D *jetGRMDeltaRHist[6][2][5];
+  TH2D *jetGRMDeltaRVsPtHist[6][2][5];
+  TH2D *jetGRMDeltaRVsEtaHist[6][2][5];
+
+  TH2::SetDefaultSumw2(true);
 
   //Inclusive Jets
   for(int i=0; i<6; i++)
@@ -230,6 +250,10 @@ int main(int argc, char* argv[])
 	      wtaRapHist[i][j][k] = new TH1D(Form("wtaRap_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("WTA Rap: %s %s %s",algoNames[i],pTNames[j],subNames[k]),400,-5.,20.);
 	      wtaRapHist[i][j][k]->Sumw2();
 
+	      grmPtHist[i][j][k] = new TH1D(Form("grmPt_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("GRM pT: %s %s %s",algoNames[i],pTNames[j],subNames[k]),100,0.,50.);
+	      grmEtaHist[i][j][k] = new TH1D(Form("grmEta_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("GRM Eta: %s %s %s",algoNames[i],pTNames[j],subNames[k]),200,-5.,5.);
+	      grmRapHist[i][j][k] = new TH1D(Form("grmRap_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("GRM Rap: %s %s %s",algoNames[i],pTNames[j],subNames[k]),400,-5.,20.);
+
 	      jetWTADeltaRHist[i][j][k] = new TH1D(Form("jetWTADeltaR_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("DeltaR Between Jet WTA: %s %s %s",algoNames[i],pTNames[j],subNames[k]),500,0.,1.);
 	      jetWTADeltaRHist[i][j][k]->Sumw2();
 	      jetWTAPDeltaRHist[i][j][k] = new TH1D(Form("jetWTAPDeltaR_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("DeltaR Between Jet WTAP: %s %s %s",algoNames[i],pTNames[j],subNames[k]),500,0.,1.);
@@ -246,11 +270,15 @@ int main(int argc, char* argv[])
 	      jetWTAPDeltaRVsPtHist[i][j][k]->Sumw2();
 	      jetWTAPDeltaRVsEtaHist[i][j][k] = new TH2D(Form("jetWTAPDeltaRVsEta_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("DeltaR Between Jet WTAP Vs Eta: %s %s %s",algoNames[i],pTNames[j],subNames[k]),200,-5.,5.,500,0.,1.);
 	      jetWTAPDeltaRVsEtaHist[i][j][k]->Sumw2();
-
+	      
 	      wtaWTAPDeltaRVsPtHist[i][j][k] = new TH2D(Form("wtaWTAPDeltaRVsPt_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("DeltaR Between WTA WTAP Vs Pt: %s %s %s",algoNames[i],pTNames[j],subNames[k]),100,0.,100.,500,0.,1.);
 	      wtaWTAPDeltaRVsPtHist[i][j][k]->Sumw2();
 	      wtaWTAPDeltaRVsEtaHist[i][j][k] = new TH2D(Form("wtaWTAPDeltaRVsEta_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("DeltaR Between WTA WTAP Vs Eta: %s %s %s",algoNames[i],pTNames[j],subNames[k]),200,-5.,5.,500,0.,1.);
 	      wtaWTAPDeltaRVsEtaHist[i][j][k]->Sumw2();
+
+	      jetGRMDeltaRHist[i][j][k] = new TH1D(Form("jetGRMDeltaR_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("DeltaR Between Jet GRM: %s %s %s",algoNames[i],pTNames[j],subNames[k]),500,0.,1.);
+	      jetGRMDeltaRVsPtHist[i][j][k] = new TH2D(Form("jetGRMDeltaRVsPt_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("DeltaR Between Jet GRM Vs Pt: %s %s %s",algoNames[i],pTNames[j],subNames[k]),100,0.,100.,500,0.,1.);
+	      jetGRMDeltaRVsEtaHist[i][j][k] = new TH2D(Form("jetGRMDeltaRVsEta_%s_%s_%s",algoNames[i],pTNames[j],subNames[k]),Form("DeltaR Between Jet GRM Vs Eta: %s %s %s",algoNames[i],pTNames[j],subNames[k]),200,-5.,5.,500,0.,1.);
 	    }
 	}
     }
@@ -469,20 +497,28 @@ int main(int argc, char* argv[])
 		  //JetDefinition jet_def_akt_wtaPt_10(kt_algorithm,R_10);
 		  JetDefinition jet_def_akt_wtaMP_10(antikt_algorithm,R_10,fastjet::WTA_modp_scheme,Best);
 		  
+		  // Cambridge Aachen for grooming
+		  JetDefinition jet_def_CA_10( fastjet::cambridge_algorithm, R_10 );		  
+
 		  // Run Clustering and Extract the Jets
 		  double ptmin = 1.0;
 
 		  // Cluster
 		  ClusterSequence csPt_akt_10_wtaPt(particlesJet, jet_def_akt_wtaPt_10);
 		  ClusterSequence csPt_akt_10_wtaMP(particlesJet, jet_def_akt_wtaMP_10);
+		  ClusterSequence csPt_CA_10(particlesJet, jet_def_CA_10);
 
 		  // WTA Jets
 		  vector<PseudoJet> jetsPt_akt_10_wtaPt = sorted_by_pt(csPt_akt_10_wtaPt.inclusive_jets(ptmin));
 		  vector<PseudoJet> jetsPt_akt_10_wtaMP = sorted_by_pt(csPt_akt_10_wtaMP.inclusive_jets(ptmin));
-      
-		  if(jetsPt_akt_10_wtaPt.size() > 1 || jetsPt_akt_10_wtaMP.size() > 1)
+		  
+		  // CA jets for grooming 
+		  vector<PseudoJet> jetsPt_CA_10 = sorted_by_pt(csPt_CA_10.inclusive_jets(ptmin));
+     
+		  if(jetsPt_akt_10_wtaPt.size() > 1 || jetsPt_akt_10_wtaMP.size() > 1 || jetsPt_CA_10.size() > 1 )
 		    {
 		      cout << "MORE JETS" << endl;
+		      throw std::runtime_error("Shouldn't find more jets");
 		    } 
 
 		  // Construct WTA Jets
@@ -492,11 +528,29 @@ int main(int argc, char* argv[])
 		  TLorentzVector wtaPJet;
 		  wtaPJet.SetPtEtaPhiE(jetsPt_akt_10_wtaMP[0].pt(),jetsPt_akt_10_wtaMP[0].eta(),jetsPt_akt_10_wtaMP[0].phi(),jetsPt_akt_10_wtaMP[0].e());
 
+		  // grooming
+		  contrib::SoftDrop sd( beta, zcut);
+		  // Add custom recluster or background subtractor here
+		  PseudoJet sd_jet = sd( jetsPt_CA_10[0]);
+		  if ( sd_jet == 0){
+		    std::cerr << "Something caused SoftDrop to return 0 ---" << endl;
+		    throw(-1);
+		    continue;
+		  }
+		  // could do double zg = sd_jet.structure_of<contrib::SoftDrop>().symmetry();
+		  TLorentzVector grmJet;
+		  grmJet.SetPtEtaPhiE(sd_jet.pt(),sd_jet.eta(),sd_jet.phi(),sd_jet.e());
+
 		  // Transform from Breit to Lab
 		  TLorentzVector breitToLabWTA;
 		  breitToLabWTA = rotateY(wtaJet,boostTheta);
 		  breitToLabWTA = rotateZ(breitToLabWTA,boostPhi);
 		  breitToLabWTA = boost(breitToLabWTA,breitToLabBoost);
+
+		  TLorentzVector breitToLabGRM;
+		  breitToLabGRM = rotateY(grmJet,boostTheta);
+		  breitToLabGRM = rotateZ(breitToLabGRM,boostPhi);
+		  breitToLabGRM = boost(breitToLabGRM,breitToLabBoost);
 
 
 		  // Plot Jet Quantities
@@ -510,6 +564,12 @@ int main(int argc, char* argv[])
 		  if(branch == 0) wtaEtaHist[branch][0][subIndex]->Fill(wtaJet.PseudoRapidity());
 		  if(branch == 4) wtaEtaHist[branch][0][subIndex]->Fill(breitToLabWTA.PseudoRapidity());
 		  wtaRapHist[branch][0][subIndex]->Fill(wtaJet.Rapidity());
+
+		  // Plot GRM Jet Quantities
+		  grmPtHist[branch][0][subIndex]->Fill(grmJet.Perp());
+		  if(branch == 0) grmEtaHist[branch][0][subIndex]->Fill(grmJet.PseudoRapidity());
+		  if(branch == 4) grmEtaHist[branch][0][subIndex]->Fill(breitToLabGRM.PseudoRapidity());
+		  grmRapHist[branch][0][subIndex]->Fill(grmJet.Rapidity());
 		  
 
 		  // Calc Delta R
@@ -522,11 +582,14 @@ int main(int argc, char* argv[])
 		  Double_t dRap3 = wtaJet.Rapidity() - wtaPJet.Rapidity();
 		  Double_t dPhi3 = TVector2::Phi_mpi_pi(wtaJet.Phi() - wtaPJet.Phi());
 
+		  Double_t dRap4 = grmJet.Rapidity() - jet->rap();
+		  Double_t dPhi4= TVector2::Phi_mpi_pi(grmJet.Phi() - jet->phi());
 
 		  // Plot Comparisons
 		  jetWTADeltaRHist[branch][0][subIndex]->Fill(TMath::Sqrt(dRap1*dRap1 + dPhi1*dPhi1));
 		  jetWTAPDeltaRHist[branch][0][subIndex]->Fill(TMath::Sqrt(dRap2*dRap2 + dPhi2*dPhi2));
 		  wtaWTAPDeltaRHist[branch][0][subIndex]->Fill(TMath::Sqrt(dRap3*dRap3 + dPhi3*dPhi3));
+		  jetGRMDeltaRHist[branch][0][subIndex]->Fill(TMath::Sqrt(dRap4*dRap4 + dPhi4*dPhi4));
 
 		  jetWTADeltaRVsPtHist[branch][0][subIndex]->Fill(jet->pt(),TMath::Sqrt(dRap1*dRap1 + dPhi1*dPhi1));
 		  if(branch == 0) jetWTADeltaRVsEtaHist[branch][0][subIndex]->Fill(jet->eta(),TMath::Sqrt(dRap1*dRap1 + dPhi1*dPhi1));
@@ -539,6 +602,11 @@ int main(int argc, char* argv[])
 		  wtaWTAPDeltaRVsPtHist[branch][0][subIndex]->Fill(jet->pt(),TMath::Sqrt(dRap3*dRap3 + dPhi3*dPhi3));
 		  if(branch == 0) wtaWTAPDeltaRVsEtaHist[branch][0][subIndex]->Fill(jet->eta(),TMath::Sqrt(dRap3*dRap3 + dPhi3*dPhi3));
 		  if(branch == 4) wtaWTAPDeltaRVsEtaHist[branch][0][subIndex]->Fill(breitToLab.PseudoRapidity(),TMath::Sqrt(dRap3*dRap3 + dPhi3*dPhi3));
+
+		  jetGRMDeltaRVsPtHist[branch][0][subIndex]->Fill(jet->pt(),TMath::Sqrt(dRap4*dRap4 + dPhi4*dPhi4));
+		  if(branch == 0) jetGRMDeltaRVsEtaHist[branch][0][subIndex]->Fill(jet->eta(),TMath::Sqrt(dRap4*dRap4 + dPhi4*dPhi4));
+		  if(branch == 4) jetGRMDeltaRVsEtaHist[branch][0][subIndex]->Fill(breitToLab.PseudoRapidity(),TMath::Sqrt(dRap4*dRap4 + dPhi4*dPhi4));
+
 		}
 	    }
 	}
